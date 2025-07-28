@@ -90,6 +90,17 @@ title.Size = UDim2.new(0, 200, 0, 30)
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = topBar
 
+local title = Instance.new("TextLabel")
+title.Text = "Ver. 1.0.2"
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 22
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundTransparency = 1
+title.Position = UDim2.new(0, 100, 0, 5)
+title.Size = UDim2.new(0, 200, 0, 30)
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = topBar
+
 local leftPanel = Instance.new("Frame")
 leftPanel.Size = UDim2.new(0, 140, 1, -40)
 leftPanel.Position = UDim2.new(0, 0, 0, 40)
@@ -210,18 +221,14 @@ local jumpBoostEnabled = false
 local jumpPowerDefault = 50
 local jumpPowerBoost = 100
 
-local function updateJumpPower()
-    local humanoid = player.Character and player.Character:FindFirstChildWhichIsA("Humanoid")
-    if humanoid then
-        humanoid.JumpPower = jumpBoostEnabled and jumpPowerBoost or jumpPowerDefault
-    end
-end
-
 createToggleButton("Jump Boost", 10, playerTab,
     function() return jumpBoostEnabled end,
     function()
         jumpBoostEnabled = not jumpBoostEnabled
-        updateJumpPower()
+        local humanoid = player.Character and player.Character:FindFirstChildWhichIsA("Humanoid")
+        if humanoid then
+            humanoid.JumpPower = jumpBoostEnabled and jumpPowerBoost or jumpPowerDefault
+        end
     end
 )
 
@@ -305,18 +312,14 @@ local speedBoostEnabled = false
 local speedDefault = 16
 local speedBoostValue = 50
 
-local function updateSpeed()
-    local humanoid = player.Character and player.Character:FindFirstChildWhichIsA("Humanoid")
-    if humanoid then
-        humanoid.WalkSpeed = speedBoostEnabled and speedBoostValue or speedDefault
-    end
-end
-
 createToggleButton("Speed Boost", 110, playerTab,
     function() return speedBoostEnabled end,
     function()
         speedBoostEnabled = not speedBoostEnabled
-        updateSpeed()
+        local humanoid = player.Character and player.Character:FindFirstChildWhichIsA("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = speedBoostEnabled and speedBoostValue or speedDefault
+        end
     end
 )
 
@@ -324,85 +327,141 @@ createToggleButton("Speed Boost", 110, playerTab,
 local noclipEnabled = false
 local noclipConnection
 
-local function setNoClip(state)
-    if state then
-        noclipConnection = RunService.Stepped:Connect(function()
-            if player.Character then
-                for _, part in pairs(player.Character:GetChildren()) do
-                    if part:IsA("BasePart") and part.CanCollide then
-                        part.CanCollide = false
-                    end
-                end
-            end
-        end)
-    else
-        if noclipConnection then
-            noclipConnection:Disconnect()
-            noclipConnection = nil
-        end
-        if player.Character then
-            for _, part in pairs(player.Character:GetChildren()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
-                end
-            end
-        end
-    end
-end
-
 createToggleButton("NoClip", 160, playerTab,
     function() return noclipEnabled end,
     function()
         noclipEnabled = not noclipEnabled
-        setNoClip(noclipEnabled)
-    end
-)
-
--- Aimbot
-local aimbotEnabled = false
-local aimbotFOV = 80
-local aimbotSensitivity = 0.3
-
-local function getClosestTarget()
-    local closest = nil
-    local closestDist = math.huge
-    local camera = workspace.CurrentCamera
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= player and plr.Character and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
-            local head = plr.Character:FindFirstChild("Head")
-            if head then
-                local screenPos, onScreen = camera:WorldToViewportPoint(head.Position)
-                if onScreen then
-                    local mousePos = Vector2.new(mouse.X, mouse.Y)
-                    local targetPos = Vector2.new(screenPos.X, screenPos.Y)
-                    local dist = (targetPos - mousePos).Magnitude
-                    if dist < aimbotFOV and dist < closestDist then
-                        closestDist = dist
-                        closest = plr
+        if noclipEnabled then
+            noclipConnection = RunService.Stepped:Connect(function()
+                if player.Character then
+                    for _, part in pairs(player.Character:GetChildren()) do
+                        if part:IsA("BasePart") and part.CanCollide == true then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        else
+            if noclipConnection then
+                noclipConnection:Disconnect()
+                noclipConnection = nil
+            end
+            if player.Character then
+                for _, part in pairs(player.Character:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
                     end
                 end
             end
         end
     end
-    return closest
+)
+
+-- ===========================
+-- World Tab
+-- ===========================
+
+-- WallHack 
+local wallHackEnabled = false
+local espBoxes = {}
+
+createToggleButton("WallHack", 10, worldTab,
+    function() return wallHackEnabled end,
+    function()
+        wallHackEnabled = not wallHackEnabled
+        if wallHackEnabled then
+            RunService:BindToRenderStep("WallHack", 301, function()
+                for _, plr in pairs(Players:GetPlayers()) do
+                    if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChildWhichIsA("Humanoid") and plr.Character.Humanoid.Health > 0 then
+                        if not espBoxes[plr] then
+                            local box = Instance.new("BoxHandleAdornment")
+                            box.Adornee = plr.Character.HumanoidRootPart
+                            box.AlwaysOnTop = true
+                            box.ZIndex = 10
+                            box.Transparency = 0.5
+                            box.Size = Vector3.new(4, 6, 4)
+                            box.Color3 = Color3.fromRGB(255, 0, 0)
+                            box.Parent = player.PlayerGui
+                            espBoxes[plr] = box
+                        end
+                    else
+                        if espBoxes[plr] then
+                            espBoxes[plr]:Destroy()
+                            espBoxes[plr] = nil
+                        end
+                    end
+                end
+            end)
+        else
+            RunService:UnbindFromRenderStep("WallHack")
+            for _, box in pairs(espBoxes) do
+                box:Destroy()
+            end
+            espBoxes = {}
+        end
+    end
+)
+
+-- Create Part 
+local function createPartUnderPlayer()
+    local character = player.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        local hrp = character.HumanoidRootPart
+        local part = Instance.new("Part")
+        part.Size = Vector3.new(6, 1, 6)
+        part.Anchored = true
+        part.CanCollide = true
+        part.Transparency = 0.3
+        part.Material = Enum.Material.Neon
+        part.Color = Color3.fromRGB(math.random(0,255), math.random(0,255), math.random(0,255)) -- рандомный цвет
+        part.CFrame = hrp.CFrame * CFrame.new(0, -3, 0)
+        part.Parent = workspace
+    end
 end
 
+createButton("Create Part", 60, worldTab, createPartUnderPlayer)
+
+-- AimBot
+local aimbotEnabled = false
 local aimbotConnection
 
-createToggleButton("Aimbot", 210, playerTab,
+createToggleButton("AimBot", 110, worldTab,
     function() return aimbotEnabled end,
     function()
         aimbotEnabled = not aimbotEnabled
+
         if aimbotEnabled then
             aimbotConnection = RunService.RenderStepped:Connect(function()
-                local target = getClosestTarget()
-                if target and target.Character and target.Character:FindFirstChild("Head") then
-                    local camera = workspace.CurrentCamera
-                    local headPos = target.Character.Head.Position
-                    local direction = (headPos - camera.CFrame.Position).Unit
-                    local targetCFrame = CFrame.new(camera.CFrame.Position, camera.CFrame.Position + direction)
-                    -- Плавный поворот камеры к цели
-                    camera.CFrame = camera.CFrame:Lerp(targetCFrame, aimbotSensitivity)
+                local closestPlayer = nil
+                local closestDistance = math.huge
+
+                for _, plr in pairs(Players:GetPlayers()) do
+                    if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChildWhichIsA("Humanoid") and plr.Character.Humanoid.Health > 0 then
+                        local head = plr.Character.Head
+                        local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(head.Position)
+                        if onScreen then
+                            local mousePos = Vector2.new(mouse.X, mouse.Y)
+                            local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                            if dist < closestDistance then
+                                closestDistance = dist
+                                closestPlayer = plr
+                            end
+                        end
+                    end
+                end
+
+                if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
+                    local head = closestPlayer.Character.Head
+                    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local targetPos = head.Position
+                        local currentPos = hrp.Position
+                        -- Линейная интерполяция поворота камеры в сторону головы цели
+                        local cam = workspace.CurrentCamera
+                        local direction = (targetPos - cam.CFrame.Position).Unit
+                        local newCFrame = CFrame.new(cam.CFrame.Position, cam.CFrame.Position + direction)
+                        cam.CFrame = newCFrame
+                    end
                 end
             end)
         else
@@ -414,113 +473,24 @@ createToggleButton("Aimbot", 210, playerTab,
     end
 )
 
--- Box ESP
-local espEnabled = false
-local espBoxes = {}
-
-local function createBox(part)
-    local adornment = Instance.new("BoxHandleAdornment")
-    adornment.Adornee = part
-    adornment.AlwaysOnTop = true
-    adornment.ZIndex = 10
-    adornment.Size = part.Size
-    adornment.Color3 = Color3.new(1, 0, 0)
-    adornment.Transparency = 0.5
-    adornment.Parent = game.CoreGui  -- <<<< ИЗМЕНЕНО: Кладем в CoreGui, не в PlayerGui
-    return adornment
-end
-
-local function updateESP()
-    for plr, box in pairs(espBoxes) do
-        if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            box.Adornee = plr.Character.HumanoidRootPart
-            box.Size = plr.Character.HumanoidRootPart.Size
-            box.Transparency = 0.5
-        else
-            box:Destroy()
-            espBoxes[plr] = nil
-        end
-    end
-end
-
-local function toggleESP(state)
-    if state then
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                if not espBoxes[plr] then
-                    espBoxes[plr] = createBox(plr.Character.HumanoidRootPart)
-                end
-            end
-        end
-        game:GetService("RunService").RenderStepped:Connect(updateESP)
-        Players.PlayerAdded:Connect(function(plr)
-            plr.CharacterAdded:Connect(function(character)
-                wait(1)
-                if espEnabled and character:FindFirstChild("HumanoidRootPart") then
-                    espBoxes[plr] = createBox(character.HumanoidRootPart)
-                end
-            end)
-        end)
-    else
-        for _, box in pairs(espBoxes) do
-            box:Destroy()
-        end
-        espBoxes = {}
-    end
-end
-
-createToggleButton("Box ESP", 260, playerTab,
-    function() return espEnabled end,
-    function()
-        espEnabled = not espEnabled
-        toggleESP(espEnabled)
-    end
-)
-
--- Auto Respawn
-local autoRespawnEnabled = false
-
-createToggleButton("Auto Respawn", 310, otherTab,
-    function() return autoRespawnEnabled end,
-    function()
-        autoRespawnEnabled = not autoRespawnEnabled
-    end
-)
-
-local function respawnPlayer()
-    if player.Character then
-        player.Character:BreakJoints()
-    end
-end
-
--- Check for death and respawn
-spawn(function()
-    while true do
-        wait(1)
-        if autoRespawnEnabled then
-            if player.Character then
-                local humanoid = player.Character:FindFirstChildWhichIsA("Humanoid")
-                if humanoid and humanoid.Health <= 0 then
-                    respawnPlayer()
-                end
-            end
-        end
-    end
-end)
-
--- Обработка смены персонажа
-local function onCharacterAdded(char)
-    updateJumpPower()
-    updateSpeed()
-    setNoClip(noclipEnabled)
-end
-
-player.CharacterAdded:Connect(onCharacterAdded)
+-- ===========================
+-- Other Tab 
+-- ===========================
+local otherLabel = Instance.new("TextLabel")
+otherLabel.Size = UDim2.new(1, -40, 0, 40)
+otherLabel.Position = UDim2.new(0, 20, 0, 20)
+otherLabel.BackgroundTransparency = 1
+otherLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+otherLabel.Font = Enum.Font.SourceSans
+otherLabel.TextSize = 20
+otherLabel.Text = "Other cheats will come soon..."
+otherLabel.Parent = otherTab
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed then
-        if input.KeyCode == Enum.KeyCode.Insert then
-            toggleGui()
-        end
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Insert then
+        toggleGui()
     end
 end)
+
+frame.Visible = true
