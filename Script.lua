@@ -108,7 +108,7 @@ leftPanel.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
 leftPanel.BorderSizePixel = 0
 leftPanel.Parent = frame
 
-local sections = {"Player", "World", "Other"}
+local sections = {"Player", "World", "Other", "99 NTH"}
 local activeTab = "Player"
 local tabs = {}
 
@@ -231,6 +231,40 @@ createToggleButton("Jump Boost", 10, playerTab,
         end
     end
 )
+
+local currentSpeed = 16
+
+-- Поле ввода для скорости
+local speedBox = Instance.new("TextBox")
+speedBox.Size = UDim2.new(0, 200, 0, 40)
+speedBox.Position = UDim2.new(0, 20, 0, 210)
+speedBox.BackgroundColor3 = Color3.fromRGB(50, 50, 120)
+speedBox.BorderSizePixel = 0
+speedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedBox.Font = Enum.Font.SourceSans
+speedBox.TextSize = 20
+speedBox.Text = tostring(currentSpeed)
+speedBox.PlaceholderText = "Введите скорость"
+speedBox.Parent = playerTab
+
+local uicornerSpeed = Instance.new("UICorner")
+uicornerSpeed.CornerRadius = UDim.new(0, 6)
+uicornerSpeed.Parent = speedBox
+
+speedBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local val = tonumber(speedBox.Text)
+        if val then
+            currentSpeed = val
+            local humanoid = player.Character and player.Character:FindFirstChildWhichIsA("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = currentSpeed
+            end
+        else
+            speedBox.Text = tostring(currentSpeed)
+        end
+    end
+end)
 
 -- Fly
 local flying = false
@@ -402,6 +436,50 @@ createToggleButton("WallHack", 10, worldTab,
     end
 )
 
+local chestEspEnabled = false
+local chestEsp = {}
+
+createToggleButton("ESP Chests", 160, worldTab,
+    function() return chestEspEnabled end,
+    function()
+        chestEspEnabled = not chestEspEnabled
+
+        if chestEspEnabled then
+            RunService:BindToRenderStep("ESPChests", 401, function()
+                -- Проверяем все сундуки в Workspace
+                for _, chest in pairs(workspace:GetChildren()) do
+                    if chest:IsA("Model") and chest.Name == "Chest" and chest:FindFirstChild("PrimaryPart") then
+                        if not chestEsp[chest] then
+                            local box = Instance.new("BoxHandleAdornment")
+                            box.Adornee = chest.PrimaryPart
+                            box.AlwaysOnTop = true
+                            box.ZIndex = 10
+                            box.Transparency = 0.5
+                            box.Size = chest.PrimaryPart.Size + Vector3.new(1,1,1)
+                            box.Color3 = Color3.fromRGB(0, 255, 0) -- зелёный для сундуков
+                            box.Parent = player.PlayerGui
+                            chestEsp[chest] = box
+                        end
+                    end
+                end
+
+                -- Чистим неактуальные
+                for chest, box in pairs(chestEsp) do
+                    if not chest.Parent then
+                        box:Destroy()
+                        chestEsp[chest] = nil
+                    end
+                end
+            end)
+        else
+            RunService:UnbindFromRenderStep("ESPChests")
+            for _, box in pairs(chestEsp) do
+                box:Destroy()
+            end
+            chestEsp = {}
+        end
+    end
+)
 -- Create Part 
 local function createPartUnderPlayer()
     local character = player.Character
